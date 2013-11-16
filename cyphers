@@ -33,14 +33,13 @@
 
 %%% Some syntax, pre-processing and miscellaneous configurations
 set(prolog_style_variables). % To use nice and representative names
-%set(process_input).
 
 %%% Reasoning strategies to deduce new things.
-set(hyper_res).
-set(para_into).
+set(hyper_res). % hyper-resolution
+set(para_into). % paramodulation
 set(para_from).
 
-set(no_fapl).
+set(no_fapl). % saves positive literals memory indexing
 set(unit_deletion).
 
 %%% Primitive elements to support more complex expressions.
@@ -63,15 +62,6 @@ make_evaluable(_/_, $DIV(_,_)).
 list(demodulators).
 
 %% Basic operations for lists.
-
-% eq_lists --
-% If the order of elements matters.
-%eq_lists_P([], []) = $T.
-%eq_lists_P([H|T], []) = $F.
-%eq_lists_P([], [H|T]) = $F.
-%eq_lists_P([H1|T1], [H2|T2]) = $IF($ID(H1, H2),
-%				eq_lists_P(T1, T2),
-%				$F).
 
 % eq_sets --
 % If the order of the elements does not matter.
@@ -98,12 +88,6 @@ union([], LS) = LS.
 union([H|T], LS) = $IF(member_P(H, LS),
                      union(T, LS),
                      [H|union(T, LS)]).
-% append([], LS) = LS.
-% append([H|T], LS) = [H|append(T, LS)].
-
-% reverse(LS) = rev2(LS, []).
-% rev2([], LS) = LS.
-% rev2([H|T], LS) = rev2(T, [H|LS]).
 
 %% Problem domain functions.
 
@@ -195,15 +179,15 @@ formula_list(usable).
  all A1 A2 O1 O2 U1 U2 (state(A1,O1,U1) & state(A2,O2,U2) &
  			$TRUE(div_P(state(A1,O1,U1),state(A2,O2,U2))) -> div(state(A1,O1,U1),state(A2,O2,U2))).
 
- % Checking for target states.
  % all O U T (state(T, O, U) & objetivo(T) -> solution(T, O, U)).
 end_of_list.
 
 % -----------------------------------------------------------------------------
 
+% Last OTTER step: show solutions. 
 formula_list(passive).
  
- % Show solutions.
+ % Rule for checking target states.
  all O U (state(765, O, U) -> $ans(solution(765, O, U))).
  
  %all O U T (solution(T, O, U) -> $ans(solution(T, O, U))).
