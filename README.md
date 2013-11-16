@@ -1,6 +1,6 @@
 # cyphers
 
-## A reasoning system built in OTTER (theorem prover) solving the "ciphers" problem
+## A reasoning system built in OTTER (theorem prover) solving the "cyphers" problem
 
 
 I used [OTTER] (http://www.mcs.anl.gov/research/projects/AR/otter/) to build a Reasoning System that is
