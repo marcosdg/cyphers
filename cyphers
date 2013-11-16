@@ -1,0 +1,212 @@
+%%%% cifras-letras
+%%%% Marcos Díez García
+%%%% 3-11-2013
+
+%%% This document is a description of an automated reasoning system built within OTTER.
+%%% We use this description to provide a solution to the following problem:
+%%% 
+%%% Given a set (no repeated elements) of natural numbers: n_1, n_2, ..., n_k,
+%%% a set of basic arithmetic operations: sum (+), minus (-), product (*),
+%%% integer division (/), and a target natural number. Find the appropiate
+%%% combinations of natural numbers and arithmetic operations, such that their
+%%% evaluation achieve the target number.
+
+%%% The solution proposed is represented in the context of search-space problems.
+%%% Thus we need to represent the following elements:
+%%%	1. Initial state.
+%%%	2. Target state.
+%%%	3. Operations over the states.
+%%%	4. Restrictions of such operations (aplicability).
+%%% 
+%%% The general structure of the document is the following:
+%%%	(a) Configuration flags and primitive operators.
+%%%	(b) Basic functions and functions to operate on states (demodulators).
+%%%	(c) Initial and target state (sos).
+%%%	(d) Logic rules to trigger, drive and terminate the reasoning process (usable).
+
+%%% * Naming and Syntactical Conventions:
+%%%	(a) UPPER-CASE letters are symbolic variables.
+%%%	(b) lower-case letters are constants or symbol functions.
+%%%	(c) some-name_P refers to  "_P"redicate functions (return boolean values).
+
+% -----------------------------------------------------------------------------
+
+%%% Some syntax, pre-processing and miscellaneous configurations
+set(prolog_style_variables). % To use nice and representative names
+%set(process_input).
+
+%%% Reasoning strategies to deduce new things.
+set(hyper_res).
+set(para_into).
+set(para_from).
+
+set(no_fapl).
+set(unit_deletion).
+
+%%% Primitive elements to support more complex expressions.
+
+%% Relational operators.
+make_evaluable(_>_, $GT(_,_)).
+make_evaluable(_>=_, $GE(_,_)).
+make_evaluable(_==_, $EQ(_,_)). % equality for integers
+
+%% Arithmetic operators.
+make_evaluable(_+_, $SUM(_,_)).
+make_evaluable(_-_, $DIFF(_,_)).
+make_evaluable(_*_, $PROD(_,_)).
+make_evaluable(_/_, $DIV(_,_)).
+
+% -----------------------------------------------------------------------------
+
+%%% Utility functions to support the reasoning process.
+
+list(demodulators).
+
+%% Basic operations for lists.
+
+% eq_lists --
+% If the order of elements matters.
+%eq_lists_P([], []) = $T.
+%eq_lists_P([H|T], []) = $F.
+%eq_lists_P([], [H|T]) = $F.
+%eq_lists_P([H1|T1], [H2|T2]) = $IF($ID(H1, H2),
+%				eq_lists_P(T1, T2),
+%				$F).
+
+% eq_sets --
+% If the order of the elements does not matter.
+eq_sets_P([], []) = $T.
+eq_sets_P([H|T], []) = $F.
+eq_sets_P([], [H|T]) = $F.
+eq_sets_P([H1|T1], [H2|T2]) = ((length(intersect([H1|T1], [H2|T2])) * 2) 
+				== (length([H1|T1]) + length([H2|T2]))).
+member_P(X, []) = $F. 
+member_P(X, [H|T]) = $IF($ID(X, H),
+			$T,
+			member_P(X, T)).
+length([]) = 0.
+length([H|T]) = (1 + length(T)).
+
+%subset([], LS) = $T.
+%subset([H|T], LS) = (member_P(H, LS) & subset(T, LS)).
+                       
+intersect([], LS) = [].
+intersect([H|T], LS) = $IF(member_P(H, LS),
+				[H|intersect(T, LS)],
+				intersect(T, LS)).
+union([], LS) = LS.
+union([H|T], LS) = $IF(member_P(H, LS),
+                     union(T, LS),
+                     [H|union(T, LS)]).
+% append([], LS) = LS.
+% append([H|T], LS) = [H|append(T, LS)].
+
+% reverse(LS) = rev2(LS, []).
+% rev2([], LS) = LS.
+% rev2([H|T], LS) = rev2(T, [H|LS]).
+
+%% Problem domain functions.
+
+% eq_states --
+%eq_states_P(state(A1, O1, U1), state(A2, O2, U2)) = ((A1 == A2) & 
+%							($ID(O1, O2)) & 
+%							(eq_sets_P(U1, U2))).
+
+% combinable --
+% We need to know whether 2 states can be combined with +, -, *, / or not,
+% we only can combine them if we are not repeating any of 
+% the initial numbers given.
+% Example: (3,_,[1,2])	combines	(7,_,[3,4])
+%	   (1,_,[1])	not combines	(5,_,[4,1])
+
+combinable_P(state(A1, O1, U1), state(A2, O2, U2)) = eq_sets_P(intersect(U1, U2), 
+								[]). 
+
+% Operations over states.
+
+sum(state(A1, O1, U1), state(A2, O2, U2)) = state(A1 + A2, 
+							sum(O1, O2), 
+							union(U1, U2)).
+prod(state(A1, O1, U1), state(A2, O2, U2)) = state(A1 * A2, 
+							prod(O1, O2), 
+							union(U1, U2)).
+minus(state(A1, O1, U1), state(A2, O2, U2)) = state(A1 - A2, 
+							minus(O1, O2), 
+							union(U1, U2)).
+div(state(A1, O1, U1), state(A2, O2, U2)) = state(A1 / A2, 
+							div(O1, O2), 
+							union(U1, U2)).
+% Aplicability of operators.
+
+sum_P(state(A1, O1, U1), state(A2, O2, U2)) = (combinable_P(state(A1,O1,U1), state(A2,O2,U2))). 
+
+minus_P(state(A1, O1, U1), state(A2, O2, U2)) = $AND(combinable_P(state(A1,O1,U1), state(A2,O2,U2)),
+							(A1 > A2)).
+
+prod_P(state(A1, O1, U1), state(A2, O2, U2)) = (combinable_P(state(A1,O1,U1), state(A2,O2,U2))).
+
+div_P(state(A1, O1, U1), state(A2, O2, U2)) = $AND(combinable_P(state(A1,O1,U1), state(A2,O2,U2)),
+							($MOD(A1, A2) == 0)).
+end_of_list.
+
+% -----------------------------------------------------------------------------
+
+%% Instance of the problem to solve.
+
+formula_list(sos).
+
+ %% Initial state.
+cifra(1).
+cifra(3).
+cifra(7).
+cifra(10).
+cifra(25).
+cifra(50).
+
+%% Target state.
+objetivo(765).
+
+end_of_list.
+
+% -----------------------------------------------------------------------------
+
+%% The reasoning logic.
+
+formula_list(usable).
+
+ % Reflexivity
+ % X = X.
+
+ % Adaptation of 'cifra' to its equivalent state.
+
+ all X (cifra(X) -> state(X, X, [X])).
+
+ % Generate the search-space by triggering all possible operations.
+
+ all A1 A2 O1 O2 U1 U2 (state(A1,O1,U1) & state(A2,O2,U2) &
+ 			$TRUE(sum_P(state(A1,O1,U1),state(A2,O2,U2))) -> sum(state(A1,O1,U1),state(A2,O2,U2))).
+
+ all A1 A2 O1 O2 U1 U2 (state(A1,O1,U1) & state(A2,O2,U2) &
+ 			$TRUE(minus_P(state(A1,O1,U1),state(A2,O2,U2))) -> minus(state(A1,O1,U1),state(A2,O2,U2))).  
+
+ all A1 A2 O1 O2 U1 U2 (state(A1,O1,U1) & state(A2,O2,U2) &
+ 			$TRUE(prod_P(state(A1,O1,U1),state(A2,O2,U2))) -> prod(state(A1,O1,U1),state(A2,O2,U2))).
+
+ all A1 A2 O1 O2 U1 U2 (state(A1,O1,U1) & state(A2,O2,U2) &
+ 			$TRUE(div_P(state(A1,O1,U1),state(A2,O2,U2))) -> div(state(A1,O1,U1),state(A2,O2,U2))).
+
+ % Checking for target states.
+ % all O U T (state(T, O, U) & objetivo(T) -> solution(T, O, U)).
+end_of_list.
+
+% -----------------------------------------------------------------------------
+
+formula_list(passive).
+ 
+ % Show solutions.
+ all O U (state(765, O, U) -> $ans(solution(765, O, U))).
+ 
+ %all O U T (solution(T, O, U) -> $ans(solution(T, O, U))).
+end_of_list.
+
+assign(max_proofs, -1).
