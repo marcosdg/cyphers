@@ -3,7 +3,7 @@
 ## A reasoning system built in OTTER (theorem prover) solving the "cyphers" problem
 
 
-I used [OTTER] (http://www.mcs.anl.gov/research/projects/AR/otter/) to build a Reasoning System that is
+I used [OTTER](http://www.mcs.anl.gov/research/projects/AR/otter/) to build a Reasoning System that is
 able to solve the following problem within the context of Search-Space problems:
 
 "Given a set of *k* numbers: *n_1, n_2, ..., n_k* and a *target* number *t*. Find the appropiate combinations of 
@@ -29,4 +29,3 @@ Having in mind the following restrictions:
 #### Note
 
 cyphers file also contains documentation.
-  
